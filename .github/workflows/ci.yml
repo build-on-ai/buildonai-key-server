@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Syntax check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node --check server.js
+
+  smoke:
+    name: Endpoint smoke tests
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install --omit=dev
+      - run: npm test
+        env:
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: 6379
+
+  secret-scan:
+    name: Secret leak guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan for known private tokens (best-effort)
+        run: |
+          set -e
+          patterns='sk-ant-|sk-[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_-]{35}|ghp_[A-Za-z0-9]{36}|xox[abp]-[A-Za-z0-9-]+|BEGIN RSA PRIVATE KEY|BEGIN OPENSSH PRIVATE KEY'
+          if grep -RInE "$patterns" --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=.github --exclude-dir=keys --exclude-dir=logs . ; then
+            echo "::error::Possible secret found in the repo"
+            exit 1
+          fi
+          echo "No secret-shaped strings found."
+
+  docker-validate:
+    name: Docker Compose config
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose config

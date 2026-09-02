@@ -1,0 +1,28 @@
+services:
+  key-server:
+    build: .
+    image: buildonai-key-server:local
+    container_name: buildonai-key-server
+    ports:
+      - "3040:3040"
+    environment:
+      KEY_SERVER_PORT: 3040
+      KEY_SERVER_HOST: 0.0.0.0
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      # Must cover the compose service name, or container-to-container calls get 403.
+      KEY_SERVER_ALLOWED_HOSTS: "key-server:3040,localhost:3040,127.0.0.1:3040,[::1]:3040"
+    volumes:
+      - ./keys:/app/keys:ro
+      # Mount the directory, not the file: a missing bind-mount path is created as a root-owned directory.
+      - ./auth:/app/auth:ro
+      - ./logs:/app/logs
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: buildonai-key-server-redis
+    command: redis-server --save "" --appendonly no
+    restart: unless-stopped

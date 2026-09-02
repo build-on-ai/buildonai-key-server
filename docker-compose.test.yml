@@ -1,0 +1,5 @@
+# Publishes Redis for `npm test`; bound to 127.0.0.1 because this Redis has no password.
+services:
+  redis:
+    ports:
+      - "127.0.0.1:6379:6379"

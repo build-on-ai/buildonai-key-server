@@ -1,0 +1,50 @@
+node_modules/
+
+# Runtime state: keys and logs never get committed.
+keys/**
+!keys/*/
+!keys/README.md
+!keys/agents/README.md
+!keys/**/.gitkeep
+logs/*
+!logs/.gitkeep
+
+# Environment
+.env
+.env.local
+
+# The real allow-list contains IPs.
+auth/allowed-clients.json
+!auth/allowed-clients.json.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# Other environment files — the documented template stays public.
+**/.env
+**/.env.*
+!**/.env.example
+**/.envrc
+
+# Private keys, certificates and credential bundles.
+**/*.pem
+**/*.key
+**/id_rsa*
+**/*.p12
+**/*.pfx
+
+# Local exports and runtime stores.
+**/*.jsonl
+**/*.db
+**/*.rdb
+
+# Test and build caches.
+**/.pytest_cache/
+**/.venv/

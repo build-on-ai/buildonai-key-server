@@ -1,0 +1,59 @@
+#!/usr/bin/env node
+// The canonical message below must mirror server.js buildCanonicalMessage() byte for byte.
+'use strict';
+
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const crypto = require('crypto');
+const sshpk = require('sshpk');
+
+const [agent, method, reqPath, bodyArg] = process.argv.slice(2);
+if (!agent || !method || !reqPath) {
+  console.error('Usage: bin/sign-request <agent> <METHOD> <path> [body|@file]');
+  console.error('Private key: $AGENT_PRIV_KEY or ~/.ssh/ecosystem-<agent>');
+  process.exit(2);
+}
+
+const keyPath = process.env.AGENT_PRIV_KEY ||
+  path.join(os.homedir(), '.ssh', `ecosystem-${agent}`);
+
+let privKey;
+try {
+  const parsed = sshpk.parsePrivateKey(fs.readFileSync(keyPath), 'auto');
+  if (parsed.type !== 'ed25519') {
+    console.error(`Key at ${keyPath} is ${parsed.type}; only ed25519 is accepted.`);
+    process.exit(1);
+  }
+  privKey = crypto.createPrivateKey(parsed.toString('pkcs8'));
+} catch (err) {
+  console.error(`Cannot load private key from ${keyPath}: ${err.message}`);
+  process.exit(1);
+}
+
+let bodyBytes = Buffer.alloc(0);
+if (bodyArg !== undefined) {
+  bodyBytes = bodyArg.startsWith('@')
+    ? fs.readFileSync(bodyArg.slice(1))
+    : Buffer.from(bodyArg, 'utf8');
+}
+
+const timestamp = new Date().toISOString().split('.')[0] + 'Z';
+const nonce = crypto.randomBytes(16).toString('hex');
+const cleanPath = reqPath.split('?')[0]; // query string is not signed
+const bodySha256 = crypto.createHash('sha256').update(bodyBytes).digest('hex');
+
+const canonical = [
+  String(method).toUpperCase(),
+  cleanPath,
+  timestamp,
+  nonce,
+  bodySha256,
+].join('\n');
+
+const signature = crypto.sign(null, Buffer.from(canonical, 'utf8'), privKey).toString('base64');
+
+console.log(`-H 'X-Agent-Id: ${agent}'`);
+console.log(`-H 'X-Timestamp: ${timestamp}'`);
+console.log(`-H 'X-Nonce: ${nonce}'`);
+console.log(`-H 'X-Signature: ${signature}'`);

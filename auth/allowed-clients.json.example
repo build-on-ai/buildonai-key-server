@@ -1,0 +1,12 @@
+{
+  "_comment": "Copy this file to allowed-clients.json. IP whitelist is the only static gate. On top of it, sensitive endpoints (/keys/*, /audit) require an ed25519-signed request — bootstrap a caller by dropping its public key at keys/agents/<AGENT>.pub. The CIDRs below are the Docker bridges used by the sandbox compose file — replace with the real ranges your deployment uses.",
+  "allowed_ips": [
+    "127.0.0.1",
+    "::1",
+    "10.0.0.0/24",
+    "172.17.0.0/16",
+    "172.18.0.0/16",
+    "172.19.0.0/16",
+    "172.20.0.0/16"
+  ]
+}

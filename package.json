@@ -1,0 +1,41 @@
+{
+  "name": "buildonai-key-server",
+  "version": "2.1.1",
+  "description": "ed25519 signature-per-request authentication server with optional SSH/API key vault. Sidecar for multi-agent systems and any HTTP service that wants stateless, key-based request auth without bearer tokens or JWT.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "lint": "node --check server.js",
+    "test": "node tests/cidr.test.js && node test/smoke.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "redis": "^5.12.1",
+    "sshpk": "^1.18.0"
+  },
+  "keywords": [
+    "ed25519",
+    "signed-request",
+    "authentication",
+    "auth",
+    "sidecar",
+    "ssh",
+    "vault",
+    "secrets",
+    "multi-agent",
+    "buildonai"
+  ],
+  "author": "BuildOnAI",
+  "license": "AGPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/build-on-ai/buildonai-key-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/build-on-ai/buildonai-key-server/issues"
+  },
+  "homepage": "https://build-on-ai.com/products/buildonai-key-server/"
+}
