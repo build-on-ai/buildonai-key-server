@@ -76,27 +76,49 @@ function loadAuthConfig() {
 }
 
 function isIpAllowed(clientIp, allowedRanges) {
+  // Simple IP check - allow localhost and private network
   if (clientIp === '127.0.0.1' || clientIp === '::1' || clientIp === '::ffff:127.0.0.1') {
     return true;
   }
 
+  // IPv4-mapped IPv6 (::ffff:10.0.0.9) carries an IPv4 address; compare it as one.
+  const ip4 = clientIp.startsWith('::ffff:') ? clientIp.slice(7) : clientIp;
+
   for (const range of allowedRanges) {
     if (range.includes('/')) {
-      const [base, maskStr] = range.split('/');
-      const mask = parseInt(maskStr, 10);
-      if (!Number.isInteger(mask)) continue;
-      const family = net.isIPv4(base) ? 'ipv4' : net.isIPv6(base) ? 'ipv6' : null;
-      if (!family) continue;
-      const bl = new net.BlockList();
-      bl.addSubnet(base, mask, family);
-      const clientFamily = net.isIPv4(clientIp) ? 'ipv4' : 'ipv6';
-      if (family === clientFamily && bl.check(clientIp, clientFamily)) return true;
-    } else if (clientIp === range) {
+      // CIDR: mask by the DECLARED prefix length. Comparing a fixed number of
+      // octets silently rejects every range that is not a /24 - including the
+      // /16 Docker bridges shipped in allowed-clients.json.example.
+      if (inCidr(clientIp, ip4, range)) return true;
+    } else if (ip4 === range || clientIp === range) {
       return true;
     }
   }
 
   return false;
+}
+
+// Returns true when the client falls inside range ("10.0.0.0/24", "fd00::/8").
+// Anything that does not parse returns false - an unparseable rule must not
+// widen access. An IPv4 rule is matched against the unwrapped address, so an
+// IPv4-mapped client (::ffff:10.0.0.9) still matches an IPv4 subnet.
+function inCidr(clientIp, ip4, range) {
+  const [base, maskStr] = range.split('/');
+  const mask = parseInt(maskStr, 10);
+  if (!Number.isInteger(mask)) return false;
+  const family = net.isIPv4(base) ? 'ipv4' : net.isIPv6(base) ? 'ipv6' : null;
+  if (!family) return false;
+  const candidate = family === 'ipv4' ? ip4 : clientIp;
+  if (!net.isIP(candidate)) return false;
+  const candidateFamily = net.isIPv4(candidate) ? 'ipv4' : 'ipv6';
+  if (candidateFamily !== family) return false;
+  const bl = new net.BlockList();
+  try {
+    bl.addSubnet(base, mask, family);
+  } catch {
+    return false;
+  }
+  return bl.check(candidate, family);
 }
 
 function checkIp(req) {

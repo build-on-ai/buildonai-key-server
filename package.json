@@ -7,7 +7,7 @@
     "start": "node server.js",
     "dev": "node server.js",
     "lint": "node --check server.js",
-    "test": "node tests/cidr.test.js && node test/smoke.js"
+    "test": "node tests/cidr.test.js && node tests/host-allowlist.test.js && node test/smoke.js"
   },
   "engines": {
     "node": ">=20.0.0"
